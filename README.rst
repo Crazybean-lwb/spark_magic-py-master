@@ -1,11 +1,12 @@
 ### 在notebook中如何调用spark magic
+
 第一步：引入spark magic 第三方工具包
 
 ```python
 from spark_magic.sparkmagic import *
 ```
-第二步：调用spark line magic(默认配置) 或者 cell magic(自定义配置)
 
+第二步：调用spark line magic(默认配置) 或者 cell magic(自定义配置)
 
 ```python
 %pyspark           # line magic
@@ -21,6 +22,7 @@ spark.executor.memory:2g
 spark.executor.cores:3
 spark.executor.instances:1
 ```
+
 第三步：引用会话
 
 ```python

@@ -27,6 +27,9 @@ setup(
     description='user define a pyspark magic',
     long_description=long_description,
     url='https://github.com/liuweibin6566396837/spark_magic-py-master',
+    install_requires=[
+        'findspark>=1.3.0',
+    ],
     author='Crazybean',
     author_email='lwbxidian@163.com',
     keywords=['pyspark', 'magic'],

@@ -5,6 +5,7 @@
 # The class MUST call this class decorator at creation time
 
 import findspark
+
 findspark.init("/usr/hdp/2.6.2.0-205/spark2/")  # 这个args要指明SPARK_HOME 例如:findspark.init("/usr/hdp/2.6.2.0-205/spark2/")
 from pyspark.sql import SparkSession
 from IPython.core.magic import (Magics, magics_class, line_magic,
@@ -13,7 +14,6 @@ from IPython.core.magic import (Magics, magics_class, line_magic,
 
 @magics_class
 class SparkMagics(Magics):
-
     @line_magic
     def lmagic(self, line):
         "my line magic"
@@ -51,6 +51,8 @@ class SparkMagics(Magics):
                 properties[arg.split(":")[0]] = arg.split(":")[1]
 
             # 判断一些基本配置是否存在, 设置默认配置
+            if "spark.submit.deployMode" not in properties.keys():
+                properties["spark.submit.deployMode"] = "client"  # 默认使用client模式
             if "spark.app.name" not in properties.keys():
                 properties["spark.app.name"] = "jupyter-shell"
             if "spark.pyspark.driver.python" not in properties.keys():
@@ -65,12 +67,21 @@ class SparkMagics(Magics):
                 properties["spark.executor.cores"] = "1"
             if "spark.executor.instances" not in properties.keys():
                 properties["spark.executor.instances"] = "2"
+            if "spark.yarn.dist.archive" not in properties.keys():  # 上传依赖包：本地或hdfs
+                properties["spark.yarn.dist.archive"] = None
+            if "spark.yarn.appMasterEnv.PYSPARK_PYTHON" not in properties.keys():
+                properties["spark.yarn.appMasterEnv.PYSPARK_PYTHON"] = None
+            if "spark.executorEnv.PYSPARK_PYTHON" not in properties.keys():
+                properties["spark.executorEnv.PYSPARK_PYTHON"] = None
 
             spark = SparkSession \
                 .builder \
                 .config("spark.app.name", properties["spark.app.name"]) \
                 .config("spark.master", "yarn") \
-                .config("spark.submit.deployMode", "client") \
+                .config("spark.submit.deployMode", properties["spark.submit.deployMode"]) \
+                .config("spark.yarn.dist.archive", properties["spark.yarn.dist.archive"]) \
+                .config("spark.yarn.appMasterEnv.PYSPARK_PYTHON", properties["spark.yarn.appMasterEnv.PYSPARK_PYTHON"]) \
+                .config("spark.executorEnv.PYSPARK_PYTHON", properties["spark.executorEnv.PYSPARK_PYTHON"]) \
                 .config("spark.pyspark.driver.python", properties["spark.pyspark.driver.python"]) \
                 .config("spark.pyspark.python", properties["spark.pyspark.python"]) \
                 .config("spark.driver.memory", properties["spark.driver.memory"]) \
@@ -94,6 +105,7 @@ def load_ipython_extension(ipython):
     # You can register the class itself without instantiating it.  IPython will
     # call the default constructor on it.
     ipython.register_magics(SparkMagics)
+
 
 ipy = get_ipython()
 ipy.register_magics(SparkMagics)

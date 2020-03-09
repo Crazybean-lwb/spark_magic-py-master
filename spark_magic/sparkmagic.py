@@ -40,6 +40,7 @@ class SparkMagics(Magics):
                 .config("spark.executor.memory", "1g") \
                 .config("spark.executor.cores", "2") \
                 .config("spark.executor.instances", "4") \
+                .enableHiveSupport() \
                 .getOrCreate()
             sc = spark.sparkContext
             return spark, sc
@@ -88,6 +89,7 @@ class SparkMagics(Magics):
                 .config("spark.executor.memory", properties["spark.executor.memory"]) \
                 .config("spark.executor.cores", properties["spark.executor.cores"]) \
                 .config("spark.executor.instances", properties["spark.executor.instances"]) \
+                .enableHiveSupport() \
                 .getOrCreate()
             sc = spark.sparkContext
             return spark, sc

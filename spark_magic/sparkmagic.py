@@ -74,6 +74,11 @@ class SparkMagics(Magics):
                 properties["spark.yarn.appMasterEnv.PYSPARK_PYTHON"] = None
             if "spark.executorEnv.PYSPARK_PYTHON" not in properties.keys():
                 properties["spark.executorEnv.PYSPARK_PYTHON"] = None
+            if "spark.hive.cluster" not in properties.keys():
+                properties["spark.hive.cluster"] = "local_cluster"
+                properties["hive.metastore.uris"] = "thrift://10.5.147.111:9083"
+            elif properties["spark.hive.cluster"] == "offline_cluster":
+                properties["hive.metastore.uris"] = "thrift://10.5.145.113:9083"
 
             spark = SparkSession \
                 .builder \
@@ -89,9 +94,21 @@ class SparkMagics(Magics):
                 .config("spark.executor.memory", properties["spark.executor.memory"]) \
                 .config("spark.executor.cores", properties["spark.executor.cores"]) \
                 .config("spark.executor.instances", properties["spark.executor.instances"]) \
+                .config("hive.metastore.uris", properties["hive.metastore.uris"]) \
                 .enableHiveSupport() \
                 .getOrCreate()
             sc = spark.sparkContext
+
+            if properties["spark.hive.cluster"] == "offline_cluster":
+                sc.hadoopConfiguration.set("fs.defaultFS", "hdfs://umecluster")
+                sc.hadoopConfiguration.set("dfs.nameservices", "umecluster")
+                sc.hadoopConfiguration.set("dfs.ha.namenodes.umecluster", "nn1,nn2")
+                sc.hadoopConfiguration.set("dfs.namenode.rpc-address.umecluster.nn1",
+                                           "umetrip09-hdp2.6-109.travelsky.com:8020")
+                sc.hadoopConfiguration.set("dfs.namenode.rpc-address.umecluster.nn2",
+                                           "umetrip09-hdp2.6-110.travelsky.com:8020")
+                sc.hadoopConfiguration.set("dfs.client.failover.proxy.provider.umecluster",
+                                           "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
             return spark, sc
 
 

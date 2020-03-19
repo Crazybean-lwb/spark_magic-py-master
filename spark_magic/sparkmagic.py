@@ -128,3 +128,4 @@ def load_ipython_extension(ipython):
 
 ipy = get_ipython()
 ipy.register_magics(SparkMagics)
+

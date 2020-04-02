@@ -3,13 +3,16 @@
 # itself to be running already.  It only creates the magics subclass but
 # doesn't instantiate it yet.
 # The class MUST call this class decorator at creation time
+import sys
 
 import findspark
 
-findspark.init("/usr/hdp/2.6.2.0-205/spark2/")  # 这个args要指明SPARK_HOME 例如:findspark.init("/usr/hdp/2.6.2.0-205/spark2/")
+findspark.init("/usr/hdp/current/spark2/")  # 这个args要指明SPARK_HOME 例如:findspark.init("/usr/hdp/2.6.2.0-205/spark2/")
 from pyspark.sql import SparkSession
 from IPython.core.magic import (Magics, magics_class, line_magic,
                                 cell_magic, line_cell_magic)
+
+PYTHON_PATH = sys.executable  # 当前使用python环境路径
 
 
 @magics_class
@@ -34,8 +37,8 @@ class SparkMagics(Magics):
             spark = SparkSession.builder.appName("jupyter-shell") \
                 .config("spark.master", "yarn") \
                 .config("spark.submit.deployMode", "client") \
-                .config("spark.pyspark.python", "/opt/app/anaconda3/bin/python") \
-                .config("spark.pyspark.driver.python", "/opt/app/anaconda3/bin/python") \
+                .config("spark.pyspark.python", PYTHON_PATH) \
+                .config("spark.pyspark.driver.python", PYTHON_PATH) \
                 .config("spark.driver.memory", "1g") \
                 .config("spark.executor.memory", "1g") \
                 .config("spark.executor.cores", "2") \
@@ -57,9 +60,9 @@ class SparkMagics(Magics):
             if "spark.app.name" not in properties.keys():
                 properties["spark.app.name"] = "jupyter-shell"
             if "spark.pyspark.driver.python" not in properties.keys():
-                properties["spark.pyspark.driver.python"] = "/opt/app/anaconda3/bin/python"
+                properties["spark.pyspark.driver.python"] = PYTHON_PATH
             if "spark.pyspark.python" not in properties.keys():
-                properties["spark.pyspark.python"] = "/opt/app/anaconda3/bin/python"
+                properties["spark.pyspark.python"] = PYTHON_PATH
             if "spark.driver.memory" not in properties.keys():
                 properties["spark.driver.memory"] = "2g"
             if "spark.executor.memory" not in properties.keys():
@@ -76,15 +79,27 @@ class SparkMagics(Magics):
                 properties["spark.executorEnv.PYSPARK_PYTHON"] = None
             if "spark.hive.cluster" not in properties.keys():
                 properties["spark.hive.cluster"] = "local_cluster"
-                properties["hive.metastore.uris"] = "thrift://10.5.147.111:9083"
+                properties["hive.metastore.uris"] = None
             elif properties["spark.hive.cluster"] == "offline_cluster":
                 properties["hive.metastore.uris"] = "thrift://10.5.145.113:9083"
+            if "spark.pyspark.virtualenv.enabled" not in properties.keys():
+                properties["spark.pyspark.virtualenv.enabled"] = "false"
+            if "spark.pyspark.virtualenv.type" not in properties.keys():
+                properties["spark.pyspark.virtualenv.type"] = None
+            if "spark.pyspark.virtualenv.requirements" not in properties.keys():
+                properties["spark.pyspark.virtualenv.requirements"] = None
+            if "spark.pyspark.virtualenv.bin.path" not in properties.keys():
+                properties["spark.pyspark.virtualenv.bin.path"] = None
 
             spark = SparkSession \
                 .builder \
                 .config("spark.app.name", properties["spark.app.name"]) \
                 .config("spark.master", "yarn") \
                 .config("spark.submit.deployMode", properties["spark.submit.deployMode"]) \
+                .config("spark.pyspark.virtualenv.enabled", properties["spark.pyspark.virtualenv.enabled"]) \
+                .config("spark.pyspark.virtualenv.type", properties["spark.pyspark.virtualenv.type"]) \
+                .config("spark.pyspark.virtualenv.requirements", properties["spark.pyspark.virtualenv.requirements"]) \
+                .config("spark.pyspark.virtualenv.bin.path", properties["spark.pyspark.virtualenv.bin.path"]) \
                 .config("spark.yarn.dist.archive", properties["spark.yarn.dist.archive"]) \
                 .config("spark.yarn.appMasterEnv.PYSPARK_PYTHON", properties["spark.yarn.appMasterEnv.PYSPARK_PYTHON"]) \
                 .config("spark.executorEnv.PYSPARK_PYTHON", properties["spark.executorEnv.PYSPARK_PYTHON"]) \
@@ -98,17 +113,16 @@ class SparkMagics(Magics):
                 .enableHiveSupport() \
                 .getOrCreate()
             sc = spark.sparkContext
-
             if properties["spark.hive.cluster"] == "offline_cluster":
-                sc.hadoopConfiguration.set("fs.defaultFS", "hdfs://umecluster")
-                sc.hadoopConfiguration.set("dfs.nameservices", "umecluster")
-                sc.hadoopConfiguration.set("dfs.ha.namenodes.umecluster", "nn1,nn2")
-                sc.hadoopConfiguration.set("dfs.namenode.rpc-address.umecluster.nn1",
-                                           "umetrip09-hdp2.6-109.travelsky.com:8020")
-                sc.hadoopConfiguration.set("dfs.namenode.rpc-address.umecluster.nn2",
-                                           "umetrip09-hdp2.6-110.travelsky.com:8020")
-                sc.hadoopConfiguration.set("dfs.client.failover.proxy.provider.umecluster",
-                                           "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
+                sc._jsc.hadoopConfiguration().set("fs.defaultFS", "hdfs://umecluster")
+                sc._jsc.hadoopConfiguration().set("dfs.nameservices", "umecluster")
+                sc._jsc.hadoopConfiguration().set("dfs.ha.namenodes.umecluster", "nn1,nn2")
+                sc._jsc.hadoopConfiguration().set("dfs.namenode.rpc-address.umecluster.nn1",
+                                                  "hdfs://10.5.145.109:8020")
+                sc._jsc.hadoopConfiguration().set("dfs.namenode.rpc-address.umecluster.nn2",
+                                                  "hdfs://10.5.145.110:8020")
+                sc._jsc.hadoopConfiguration().set("dfs.client.failover.proxy.provider.umecluster",
+                                                  "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
             return spark, sc
 
 
@@ -128,4 +142,3 @@ def load_ipython_extension(ipython):
 
 ipy = get_ipython()
 ipy.register_magics(SparkMagics)
-

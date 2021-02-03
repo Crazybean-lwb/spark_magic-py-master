@@ -2,7 +2,7 @@
 
 第一步：从gitlab下载
 
-地址: http://172.16.101.1/BasicPlatform_DataProduct/spark_magic-py-master
+地址: https://github.com/liuweibin6566396837/spark_magic-py-master
 
 第二步: 切换到需要安装工具包的环境
 
